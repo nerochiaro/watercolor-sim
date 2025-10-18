@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://bot7do84e1cn7"]
+
+[ext_resource type="Shader" uid="uid://dppfoxho0k282" path="res://compute_sprite/render.gdshader" id="1_tndny"]
+[ext_resource type="Script" uid="uid://bap4gufryg2uu" path="res://compute_sprite/compute_sprite.gd" id="2_pjlli"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ykrsh"]
+shader = ExtResource("1_tndny")
+shader_parameter/effect_texture_size = Vector2(0, 0)
+
+[node name="Sprite2D" type="Sprite2D"]
+material = SubResource("ShaderMaterial_ykrsh")
+centered = false
+script = ExtResource("2_pjlli")

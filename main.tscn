@@ -1,0 +1,11 @@
+[gd_scene load_steps=4 format=3 uid="uid://djn14djxpwuqj"]
+
+[ext_resource type="Script" uid="uid://cjacjnvuawbyw" path="res://main.gd" id="1_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://bot7do84e1cn7" path="res://compute_sprite/compute_sprite.tscn" id="2_h2yge"]
+[ext_resource type="RDShaderFile" uid="uid://by0qjy6qxh4mt" path="res://compute.glsl" id="3_h2yge"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_0xm2m")
+
+[node name="Sprite2D" parent="." instance=ExtResource("2_h2yge")]
+compute_script = ExtResource("3_h2yge")
