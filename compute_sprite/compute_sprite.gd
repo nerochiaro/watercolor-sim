@@ -24,10 +24,10 @@ func _ready() -> void:
 		self.material.set_shader_parameter(&"effect_texture", shared_texture)
 
 	# Compute shader initialization needs to happen on the rendering thread
-	RenderingServer.call_on_render_thread(_initialize_compute_code.bind(texture_size))
+	RenderingServer.call_on_render_thread(_initialize_compute_code)
 
 func _process(_delta: float) -> void:
-	RenderingServer.call_on_render_thread(_render_process.bind(texture_size))
+	RenderingServer.call_on_render_thread(_render_process)
 
 func _exit_tree() -> void:
 	if shared_texture:
@@ -38,7 +38,7 @@ func _exit_tree() -> void:
 ###############################################################################
 # Everything after this point is designed to run on our rendering thread.
 
-func _initialize_compute_code(init_with_texture_size: Vector2i):
+func _initialize_compute_code():
 	# As this becomes part of our normal frame rendering,
 	# we use our main rendering device here.
 	rd = RenderingServer.get_rendering_device()
@@ -52,8 +52,8 @@ func _initialize_compute_code(init_with_texture_size: Vector2i):
 	var tf: RDTextureFormat = RDTextureFormat.new()
 	tf.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT
 	tf.texture_type = RenderingDevice.TEXTURE_TYPE_2D
-	tf.width = init_with_texture_size.x
-	tf.height = init_with_texture_size.y
+	tf.width = texture_size.x
+	tf.height = texture_size.y
 	tf.depth = 1
 	tf.array_layers = 1
 	tf.mipmaps = 1
@@ -73,14 +73,14 @@ func _initialize_compute_code(init_with_texture_size: Vector2i):
 	# Clear the shared texture to prevent it from starting with garbage in it.
 	rd.texture_clear(shared_texture_rid, Color(0, 0, 0.0, 0.0), 0, 1, 0, 1)
 
-func _render_process(tex_size: Vector2i) -> void:
+func _render_process() -> void:
 	# Calculate our dispatch group size.
 	# We do `(n - 1) / (8 + 1)` in case our texture size is not nicely divisible by 8.
 	# In combination with a discard check in the shader this ensures we cover the entire texture.
 	@warning_ignore("integer_division")
-	var x_groups := (tex_size.x - 1) / 8 + 1
+	var x_groups := (texture_size.x - 1) / 8 + 1
 	@warning_ignore("integer_division")
-	var y_groups := (tex_size.y - 1) / 8 + 1
+	var y_groups := (texture_size.y - 1) / 8 + 1
 
 	# Build the push constant by adding fields in order and making sure it's
 	# padded to multiples of 4 elements of 4bytes each.
