@@ -3,6 +3,19 @@ class_name ComputeSprite2D
 
 @export var compute_script: RDShaderFile
 @export var texture_size: Vector2i = Vector2i(512, 512)
+@export var push_constant: PackedFloat32Array = []
+
+## If a [@class Callable] is passed, it will be called on the rendering thread
+## once, during setup of the compute pipeline, to create an additional uniform set
+## to match additional data needed by your compute shader.
+## 
+## The Callable should have this signature:
+## [code]func _name(shader: RID, int index) -> RID[/code]
+## 
+## It should create a new uniform set (for shader and index) on the main
+## `[@class RenderingDevice] (i.e. using [@method RenderingServer.get_rendering_device])
+## and then return its RID.
+@export var create_uniform_set: Callable
 
 var rd: RenderingDevice
 var shader: RID
@@ -82,26 +95,24 @@ func _render_process() -> void:
 	@warning_ignore("integer_division")
 	var y_groups := (texture_size.y - 1) / 8 + 1
 
-	# Build the push constant by adding fields in order and making sure it's
-	# padded to multiples of 4 elements of 4bytes each.
-	var push_constant := PackedFloat32Array()
-	push_constant.push_back(tex_size.x)
-	push_constant.push_back(tex_size.y)
-	push_constant.push_back(0.0)
-	push_constant.push_back(0.0)
-
-	# Pass the shaded texture to the compute shader
+	# Pass the shared texture to the compute shader
 	var uniform := RDUniform.new()
 	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	uniform.binding = 0
 	uniform.add_id(shared_texture_rid)
-	var next_set = rd.uniform_set_create([uniform], shader, 0)
+	var uniform_set = rd.uniform_set_create([uniform], shader, 0)
 
 	# Run the compute shader.
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, next_set, 0)
+
+	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
+	if create_uniform_set:
+		var extra_uniform_set = create_uniform_set.call(shader, 1)
+		rd.compute_list_bind_uniform_set(compute_list, extra_uniform_set, 1)
+
 	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
+
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	rd.compute_list_end()
 
