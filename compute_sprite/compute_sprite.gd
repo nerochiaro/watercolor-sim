@@ -4,8 +4,8 @@ class_name ComputeSprite2D
 @export var compute_script: RDShaderFile
 @export var texture_size: Vector2i = Vector2i(512, 512)
 @export var push_constant: PackedFloat32Array = []
-const group_size = 16;
 @export var iterations_per_frame: int = 4
+@export var group_size: int = 16;
 
 ## If a [@class Callable] is passed, it will be called on the rendering thread
 ## once, during setup of the compute pipeline, to create an additional uniform set
