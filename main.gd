@@ -47,6 +47,7 @@ var _debug: RID
 var frame = 0
 var _print_cells = false
 var _front_first = true
+var _click_pos := Vector2i.MAX
 
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := SimState.new(width, height)
@@ -108,10 +109,7 @@ func _init_sim():
 
 	%Sim.texture_size = Vector2i(width, height)
 	%Sim.create_uniform_set = self._create_uniform_set
-
-	# Setup push constant data for the compute shader.
-	# Note that the array must be padded to multiples of 4
-	%Sim.push_constant = PackedFloat32Array([width, height, 0.0, 0.0])
+	%Sim.create_push_constant = self._create_push_constant
 
 # This function is called at each rendering frame, since the compute shader's uniforms need to
 # be swapped each frame.
@@ -137,3 +135,19 @@ func _create_uniform_set(shader: RID, index: int) -> RID:
 
 	var uniform_set = rd.uniform_set_create([uniform_front, uniform_back, uniform_debug], shader, index)
 	return uniform_set
+
+func _create_push_constant() -> PackedFloat32Array:
+	var pc = PackedFloat32Array([
+		width,
+		height,
+		_click_pos.x,
+		_click_pos.y
+	])
+	_click_pos = Vector2i.MAX
+	return pc
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_click_pos = event.position

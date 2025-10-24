@@ -10,6 +10,7 @@ layout(r32f, set = 0, binding = 0, rgba32f) uniform restrict writeonly image2D o
 // Simulation parameters as push constant
 layout(push_constant, std430) uniform Params {
 	vec2 size;
+	vec2 click;
 } params;
 
 // Simulation buffers
@@ -28,6 +29,9 @@ layout(set = 1, binding = 2, std430) restrict buffer SimDebug {
 // Unpack the size and convert to int (as push constant is an array of floats)
 int width = int(params.size.x);
 int height = int(params.size.y);
+
+int click_x = int(params.click.x);
+int click_y = int(params.click.y);
 
 const int int_max = 2147483647;
 const int diffusion_limit = 4;
@@ -90,6 +94,12 @@ void main() {
 
     int cell = _process_cell(x, y);
     setv(x, y, cell);
+
+	float xd = abs(distance(x, click_x));
+	float yd = abs(distance(y, click_y));
+	if (xd <= 20.0 && yd <= 20.0) {
+		setv(x, y, int_max);
+	}
 
     // Assign the value as greyscale to the output image texture
     float c = cell / float(int_max);

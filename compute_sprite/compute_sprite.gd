@@ -3,13 +3,13 @@ class_name ComputeSprite2D
 
 @export var compute_script: RDShaderFile
 @export var texture_size: Vector2i = Vector2i(512, 512)
-@export var push_constant: PackedFloat32Array = []
 @export var iterations_per_frame: int = 4
 @export var group_size: int = 16;
 
 ## If a [@class Callable] is passed, it will be called on the rendering thread
-## once, during setup of the compute pipeline, to create an additional uniform set
-## to match additional data needed by your compute shader.
+## once per compute iteration (of which there can be multiple per frame).
+## It should create and return an additional uniform set to match additional data
+## needed by your compute shader.
 ## 
 ## The Callable should have this signature:
 ## [code]func _name(shader: RID, int index) -> RID[/code]
@@ -18,6 +18,14 @@ class_name ComputeSprite2D
 ## `[@class RenderingDevice] (i.e. using [@method RenderingServer.get_rendering_device])
 ## and then return its RID.
 @export var create_uniform_set: Callable
+
+## Same as [@method create_uniform_set] but for the push constant
+## The Callable should have this signature:
+## [code]func _name() -> PackedFloat32Array[/code]
+##
+## The byte array should match the data declared in the shader's push constant declaration,
+## padded to multiples of 4 elements.
+@export var create_push_constant: Callable
 
 var rd: RenderingDevice
 var shader: RID
@@ -113,8 +121,8 @@ func _render_process() -> void:
 		if create_uniform_set:
 			var extra_uniform_set = create_uniform_set.call(shader, 1)
 			rd.compute_list_bind_uniform_set(compute_list, extra_uniform_set, 1)
-
-		rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
+			var push_constant = create_push_constant.call()
+			rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 
 		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 		rd.barrier(compute_list)
