@@ -16,10 +16,18 @@ layout(push_constant, std430) uniform Params {
 	vec2 size;
 } params;
 
-// Simulation buffer for wetness level
-layout(set = 1, binding = 0, std430) restrict buffer WetnessBuffer {
+// Simulation buffers
+layout(set = 1, binding = 0, std430) restrict buffer SimDataRead {
     int data[];
-} wet;
+} sim_read;
+
+layout(set = 1, binding = 1, std430) restrict buffer SimDataWrite {
+    int data[];
+} sim_write;
+
+layout(set = 1, binding = 2, std430) restrict buffer SimDebug {
+    int data[];
+} debug;
 
 // Unpack the size and convert to int (as push constant is an array of floats)
 int width = int(params.size.x);
