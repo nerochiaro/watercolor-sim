@@ -4,6 +4,7 @@ class_name ComputeSprite2D
 @export var compute_script: RDShaderFile
 @export var texture_size: Vector2i = Vector2i(512, 512)
 @export var push_constant: PackedFloat32Array = []
+const group_size = 16;
 
 ## If a [@class Callable] is passed, it will be called on the rendering thread
 ## once, during setup of the compute pipeline, to create an additional uniform set
@@ -91,9 +92,9 @@ func _render_process() -> void:
 	# We do `(n - 1) / (8 + 1)` in case our texture size is not nicely divisible by 8.
 	# In combination with a discard check in the shader this ensures we cover the entire texture.
 	@warning_ignore("integer_division")
-	var x_groups := (texture_size.x - 1) / 8 + 1
+	var x_groups := (texture_size.x - 1) / group_size + 1
 	@warning_ignore("integer_division")
-	var y_groups := (texture_size.y - 1) / 8 + 1
+	var y_groups := (texture_size.y - 1) / group_size + 1
 
 	# Pass the shared texture to the compute shader
 	var uniform := RDUniform.new()
