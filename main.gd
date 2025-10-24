@@ -1,6 +1,14 @@
 extends Node2D
 
-const Int = DiffusionSim.Int
+class Int:
+	static func tof(value: int) -> float:
+		return remap(value, 0, Int.MAX, 0.0, 1.0)
+
+	static func fromf(value: float) -> int:
+		return roundi(remap(value, 0.0, 1.0, 0.0, Int.MAX))
+
+	const MAX = Vector3i.MAX.x;
+
 @export var width := 512
 @export var height := 512
 
@@ -9,26 +17,52 @@ const Int = DiffusionSim.Int
 var _sim_buffer_front: RID
 var _sim_buffer_back: RID
 var _debug: RID
+var frame = 0
+var _print_cells = false
+
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := DiffusionSim.SimState.new(width, height)
 
 	# Draw margin
 	for i in height:
 		if i == 0 or i == height - 1:
-			_sim.set_rect(0, i, width, 1, Int.fromf(1.0))
+			_sim.set_rect(0, i, width, 1, Int.fromf(0.0))
 		else:
-			_sim.set_rect(0, i, 1, 1, Int.fromf(1.0))
-			_sim.set_rect(width - 1, i, 1, 1, Int.fromf(1.0))
+			_sim.set_rect(0, i, 1, 1, Int.fromf(0.0))
+			_sim.set_rect(width - 1, i, 1, 1, Int.fromf(0.0))
 
-	_sim.set_rect(100, 100, 200, 200, Int.fromf(0.2))
-	_sim.set_rect(200, 200, 50, 50, Int.fromf(0.9))
+	#_sim.set_rect(1, 1, 3, 3, Int.fromf(0.2))
+	#_sim.set_rect(2, 2, 1, 1, Int.fromf(0.9))
+
+	_sim.set_rect(100, 100, 300, 300, Int.fromf(0.2))
+	_sim.set_rect(200, 200, 100, 100, Int.fromf(0.9))
 
 	return _sim._data
 
 func _ready():
 	RenderingServer.call_on_render_thread(_init_sim)
 	RenderingServer.frame_post_draw.connect(on_frame_post_draw)
+
 func on_frame_post_draw():
+	if frame < 4:
+		if _print_cells:
+			var rd = RenderingServer.get_rendering_device()
+			var data = rd.buffer_get_data(_sim_buffer_front)
+			var idata = data.to_int32_array()
+			prints("================", frame)
+			for y in height:
+				var row := idata.slice(y * width, y * width + width)
+				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
+				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
+
+			var ddata = rd.buffer_get_data(_debug)
+			var didata = ddata.to_int32_array()
+			prints(" ")
+			for y in height:
+				var row := didata.slice(y * width, y * width + width)
+				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
+				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
+	frame += 1
 	_swap_buffers()
 
 func _swap_buffers():
