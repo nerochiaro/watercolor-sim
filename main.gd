@@ -46,6 +46,7 @@ var _sim_buffer_back: RID
 var _debug: RID
 var frame = 0
 var _print_cells = false
+var _front_first = true
 
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := SimState.new(width, height)
@@ -90,12 +91,6 @@ func on_frame_post_draw():
 				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
 				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 	frame += 1
-	_swap_buffers()
-
-func _swap_buffers():
-	var swap := _sim_buffer_back
-	_sim_buffer_back = _sim_buffer_front
-	_sim_buffer_front = swap
 
 func _init_sim():
 	var rd = RenderingServer.get_rendering_device()
@@ -126,12 +121,14 @@ func _create_uniform_set(shader: RID, index: int) -> RID:
 	var uniform_front := RDUniform.new()
 	uniform_front.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	uniform_front.binding = 0
-	uniform_front.add_id(_sim_buffer_front)
+	uniform_front.add_id(_sim_buffer_front if _front_first else _sim_buffer_back)
 
 	var uniform_back := RDUniform.new()
 	uniform_back.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	uniform_back.binding = 1
-	uniform_back.add_id(_sim_buffer_back)
+	uniform_back.add_id(_sim_buffer_back if _front_first else _sim_buffer_front)
+
+	_front_first = not _front_first
 
 	var uniform_debug := RDUniform.new()
 	uniform_debug.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
