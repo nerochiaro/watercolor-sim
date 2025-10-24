@@ -5,6 +5,7 @@ class_name ComputeSprite2D
 @export var texture_size: Vector2i = Vector2i(512, 512)
 @export var push_constant: PackedFloat32Array = []
 const group_size = 16;
+@export var iterations_per_frame: int = 4
 
 ## If a [@class Callable] is passed, it will be called on the rendering thread
 ## once, during setup of the compute pipeline, to create an additional uniform set
@@ -107,14 +108,17 @@ func _render_process() -> void:
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 
-	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
-	if create_uniform_set:
-		var extra_uniform_set = create_uniform_set.call(shader, 1)
-		rd.compute_list_bind_uniform_set(compute_list, extra_uniform_set, 1)
+	for i in iterations_per_frame:
+		rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
+		if create_uniform_set:
+			var extra_uniform_set = create_uniform_set.call(shader, 1)
+			rd.compute_list_bind_uniform_set(compute_list, extra_uniform_set, 1)
 
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
+		rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 
-	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
+		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
+		rd.barrier(compute_list)
+
 	rd.compute_list_end()
 
 func _free_compute_resources():
