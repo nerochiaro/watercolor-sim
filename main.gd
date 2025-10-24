@@ -9,6 +9,33 @@ class Int:
 
 	const MAX = Vector3i.MAX.x;
 
+class SimState:
+	var _data: PackedInt32Array
+	var width: int
+	var height: int
+
+	func _init(_width: int, _height: int):
+		width = _width
+		height = _height
+		_data.resize(width * height)
+		_data.fill(0)
+
+	func getv(x: int, y: int) -> int:
+		return _data[width * y + x]
+
+	func setv(x: int, y: int, value: int):
+		_data[width * y + x] = value
+
+	func set_rect(x: int, y: int, w: int, h: int, value: int):
+		for _y in range(y, y + h):
+			for _x in range(x, x + w):
+				setv(_x, _y, value)
+
+	func clone() -> SimState:
+		var cloned = SimState.new(width, height)
+		cloned._data = self._data.duplicate()
+		return cloned
+
 @export var width := 512
 @export var height := 512
 
@@ -21,7 +48,7 @@ var frame = 0
 var _print_cells = false
 
 func prepare_initial_state() -> PackedInt32Array:
-	var _sim := DiffusionSim.SimState.new(width, height)
+	var _sim := SimState.new(width, height)
 
 	# Draw margin
 	for i in height:
