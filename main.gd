@@ -44,10 +44,10 @@ class SimState:
 var _sim_buffer_front: RID
 var _sim_buffer_back: RID
 var _debug: RID
-var frame = 0
 var _print_cells = false
 var _front_first = true
 var _click_pos := Vector2i.ZERO
+var _iteration := 0
 
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := SimState.new(width, height)
@@ -73,12 +73,12 @@ func _ready():
 	RenderingServer.frame_post_draw.connect(on_frame_post_draw)
 
 func on_frame_post_draw():
-	if frame < 4:
+	if _iteration < 4:
 		if _print_cells:
 			var rd = RenderingServer.get_rendering_device()
 			var data = rd.buffer_get_data(_sim_buffer_front)
 			var idata = data.to_int32_array()
-			prints("================", frame)
+			prints("================", _iteration)
 			for y in height:
 				var row := idata.slice(y * width, y * width + width)
 				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
@@ -91,7 +91,7 @@ func on_frame_post_draw():
 				var row := didata.slice(y * width, y * width + width)
 				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
 				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
-	frame += 1
+	_iteration += 1
 
 func _init_sim():
 	var rd = RenderingServer.get_rendering_device()
@@ -141,13 +141,19 @@ func _create_push_constant() -> PackedFloat32Array:
 		width,
 		height,
 		_click_pos.x,
-		_click_pos.y
+		_click_pos.y,
+		_iteration,
+		0.0,
+		0.0,
+		0.0
 	])
 	_click_pos = Vector2i.ZERO
+	_iteration += 1
 	return pc
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
+				print("Clicked")
 				_click_pos = event.position

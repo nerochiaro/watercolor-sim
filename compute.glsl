@@ -11,6 +11,7 @@ layout(r32f, set = 0, binding = 0, rgba32f) uniform restrict writeonly image2D o
 layout(push_constant, std430) uniform Params {
 	vec2 size;
 	vec2 click;
+	int iteration;
 } params;
 
 // Simulation buffers
