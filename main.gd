@@ -47,7 +47,7 @@ var _debug: RID
 var frame = 0
 var _print_cells = false
 var _front_first = true
-var _click_pos := Vector2i.MAX
+var _click_pos := Vector2i.ZERO
 
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := SimState.new(width, height)
@@ -143,7 +143,7 @@ func _create_push_constant() -> PackedFloat32Array:
 		_click_pos.x,
 		_click_pos.y
 	])
-	_click_pos = Vector2i.MAX
+	_click_pos = Vector2i.ZERO
 	return pc
 
 func _unhandled_input(event: InputEvent) -> void:

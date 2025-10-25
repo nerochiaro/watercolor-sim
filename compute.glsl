@@ -29,12 +29,11 @@ layout(set = 1, binding = 2, std430) restrict buffer SimDebug {
 // Unpack the size and convert to int (as push constant is an array of floats)
 int width = int(params.size.x);
 int height = int(params.size.y);
-
 int click_x = int(params.click.x);
 int click_y = int(params.click.y);
 
 const int int_max = 2147483647;
-const int diffusion_limit = 4;
+const int diffusion_limit = 6;
 const bool sample_diagonally = true;
 const int diagonal_reduction = 2;
 
@@ -84,6 +83,15 @@ int _process_cell(int x, int y) {
 	return v + delta;
 }
 
+const int radius = 20;
+const int radius_square = radius * radius;
+
+bool in_circle(int x, int y) {
+  int dx = x - click_x;
+  int dy = y - click_y;
+  return (dx * dx + dy * dy <= radius_square);
+}
+
 void main() {
     int x = int(gl_GlobalInvocationID.x);
     int y = int(gl_GlobalInvocationID.y);
@@ -95,9 +103,7 @@ void main() {
     int cell = _process_cell(x, y);
     setv(x, y, cell);
 
-	float xd = abs(distance(x, click_x));
-	float yd = abs(distance(y, click_y));
-	if (xd <= 20.0 && yd <= 20.0) {
+	if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
 		setv(x, y, int_max);
 	}
 
