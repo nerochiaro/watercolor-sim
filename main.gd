@@ -38,6 +38,8 @@ class SimState:
 
 @export var width := 512
 @export var height := 512
+var _drop_size: int = 20
+var _drop_wetness: float = 80.0
 
 # The SSBO buffers used for the simulation by the compute shader.
 # They are ping pong buffers: one is read from and the other written to, then at each frame they are swapped
@@ -71,6 +73,8 @@ func prepare_initial_state() -> PackedInt32Array:
 func _ready():
 	RenderingServer.call_on_render_thread(_init_sim)
 	RenderingServer.frame_post_draw.connect(on_frame_post_draw)
+	%UI.drop_size_changed.connect(func (value: float): _drop_size = int(value))
+	%UI.drop_wetness_changed.connect(func (value: float): _drop_wetness = value)
 
 func on_frame_post_draw():
 	if _iteration < 4:
@@ -142,9 +146,9 @@ func _create_push_constant() -> PackedFloat32Array:
 		height,
 		_click_pos.x,
 		_click_pos.y,
+		_drop_size,
+		_drop_wetness,
 		_iteration,
-		0.0,
-		0.0,
 		0.0
 	])
 	_click_pos = Vector2i.ZERO

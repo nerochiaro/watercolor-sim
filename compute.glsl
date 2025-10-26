@@ -11,7 +11,9 @@ layout(r32f, set = 0, binding = 0, rgba32f) uniform restrict writeonly image2D o
 layout(push_constant, std430) uniform Params {
 	vec2 size;
 	vec2 click;
-	int iteration;
+	float drop_radius;
+	float drop_wetness;
+	float iteration;
 } params;
 
 // Simulation buffers
@@ -27,16 +29,18 @@ layout(set = 1, binding = 2, std430) restrict buffer SimDebug {
     int data[];
 } debug;
 
-// Unpack the size and convert to int (as push constant is an array of floats)
-int width = int(params.size.x);
-int height = int(params.size.y);
-int click_x = int(params.click.x);
-int click_y = int(params.click.y);
-
 const int int_max = 2147483647;
 const int diffusion_limit = 6;
 const bool sample_diagonally = true;
 const int diagonal_reduction = 2;
+
+// Unpack and convert the push constant data (which is a Godot PackedFloatArray remapped to GLSL types, conceptually)
+int width = int(params.size.x);
+int height = int(params.size.y);
+int click_x = int(params.click.x);
+int click_y = int(params.click.y);
+int radius_square = int(params.drop_radius) * int(params.drop_radius);
+int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
 
 int getv(int x, int y) {
     return sim_read.data[width * y + x];
@@ -84,9 +88,6 @@ int _process_cell(int x, int y) {
 	return v + delta;
 }
 
-const int radius = 20;
-const int radius_square = radius * radius;
-
 bool in_circle(int x, int y) {
   int dx = x - click_x;
   int dy = y - click_y;
@@ -105,7 +106,7 @@ void main() {
     setv(x, y, cell);
 
 	if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
-		setv(x, y, int_max);
+		setv(x, y, drop_wetness);
 	}
 
     // Assign the value as greyscale to the output image texture

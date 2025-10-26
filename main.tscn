@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://djn14djxpwuqj"]
+[gd_scene load_steps=5 format=3 uid="uid://djn14djxpwuqj"]
 
 [ext_resource type="Script" uid="uid://cjacjnvuawbyw" path="res://main.gd" id="1_0xm2m"]
 [ext_resource type="PackedScene" uid="uid://bot7do84e1cn7" path="res://compute_sprite/compute_sprite.tscn" id="2_h2yge"]
 [ext_resource type="RDShaderFile" uid="uid://by0qjy6qxh4mt" path="res://compute.glsl" id="3_h2yge"]
+[ext_resource type="PackedScene" uid="uid://cd8jyx4av2iek" path="res://ui/ui.tscn" id="4_1bvp3"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_0xm2m")
@@ -10,3 +11,7 @@ script = ExtResource("1_0xm2m")
 [node name="Sim" parent="." instance=ExtResource("2_h2yge")]
 unique_name_in_owner = true
 compute_script = ExtResource("3_h2yge")
+[node name="UI" parent="." instance=ExtResource("4_1bvp3")]
+unique_name_in_owner = true
+scale = Vector2(1.0001947, 1)
+transform = Transform2D(1.0001947, 0, 0, 1, 0, 0)
