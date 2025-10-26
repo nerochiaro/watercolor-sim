@@ -11,6 +11,7 @@ script = ExtResource("1_0xm2m")
 [node name="Sim" parent="." instance=ExtResource("2_h2yge")]
 unique_name_in_owner = true
 compute_script = ExtResource("3_h2yge")
+
 [node name="UI" parent="." instance=ExtResource("4_1bvp3")]
 unique_name_in_owner = true
 scale = Vector2(1.0001947, 1)

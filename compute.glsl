@@ -13,6 +13,7 @@ layout(push_constant, std430) uniform Params {
 	vec2 click;
 	float drop_radius;
 	float drop_wetness;
+	float dry_rate;
 	float iteration;
 } params;
 
@@ -41,6 +42,7 @@ int click_x = int(params.click.x);
 int click_y = int(params.click.y);
 int radius_square = int(params.drop_radius) * int(params.drop_radius);
 int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
+int dry_amount = int(float(int_max) * (params.dry_rate / 100000.0));
 
 int getv(int x, int y) {
     return sim_read.data[width * y + x];
@@ -84,7 +86,6 @@ int _process_cell(int x, int y) {
 	}
 
 	int delta = straight + diagonal;
-	debug.data[x + width * y] = delta;
 	return v + delta;
 }
 
@@ -103,6 +104,7 @@ void main() {
     }
 
     int cell = _process_cell(x, y);
+	cell = int(max(cell - dry_amount, 0));
     setv(x, y, cell);
 
 	if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
