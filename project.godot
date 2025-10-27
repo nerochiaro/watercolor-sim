@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="TestGPU"
+config/name="PaintSim"
 run/main_scene="uid://djn14djxpwuqj"
 config/features=PackedStringArray("4.5", "Mobile")
 
