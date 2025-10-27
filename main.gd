@@ -50,6 +50,7 @@ var _debug: RID
 var _print_cells = false
 var _front_first = true
 var _click_pos := Vector2i.ZERO
+var _click_button := MOUSE_BUTTON_NONE
 var _iteration := 0
 
 func prepare_initial_state() -> PackedInt32Array:
@@ -148,18 +149,23 @@ func _create_push_constant() -> PackedFloat32Array:
 		height,
 		_click_pos.x,
 		_click_pos.y,
+		_click_button,
 		_drop_size,
 		_drop_wetness,
 		_dry_rate,
 		_iteration,
+		0,
+		0,
+		0
 	])
 	_click_pos = Vector2i.ZERO
+	_click_button = MOUSE_BUTTON_NONE
 	_iteration += 1
 	return pc
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
 			if event.pressed:
-				print("Clicked")
 				_click_pos = event.position
+				_click_button = event.button_index

@@ -11,6 +11,7 @@ layout(r32f, set = 0, binding = 0, rgba32f) uniform restrict writeonly image2D o
 layout(push_constant, std430) uniform Params {
 	vec2 size;
 	vec2 click;
+	float click_button;
 	float drop_radius;
 	float drop_wetness;
 	float dry_rate;
@@ -40,8 +41,10 @@ int width = int(params.size.x);
 int height = int(params.size.y);
 int click_x = int(params.click.x);
 int click_y = int(params.click.y);
+int click_button = int(params.click_button);
 int radius_square = int(params.drop_radius) * int(params.drop_radius);
 int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
+int inverse_drop_wetness = int(int_max * ((100.0 - params.drop_wetness) / 100.0));
 int dry_amount = int(float(int_max) * (params.dry_rate / 100000.0));
 
 int getv(int x, int y) {
@@ -107,8 +110,11 @@ void main() {
 	cell = int(max(cell - dry_amount, 0));
     setv(x, y, cell);
 
-	if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
-		setv(x, y, drop_wetness);
+	/* Process input */
+	if (click_button > 0) {
+		if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
+			setv(x, y, click_button == 1 ? drop_wetness : inverse_drop_wetness);
+		}
 	}
 
     // Assign the value as greyscale to the output image texture
