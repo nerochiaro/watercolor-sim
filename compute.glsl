@@ -51,7 +51,7 @@ int height = int(params.size.y);
 int click_x = int(params.click.x);
 int click_y = int(params.click.y);
 int click_button = int(params.click_button);
-int radius_square = int(params.drop_radius) * int(params.drop_radius);
+int radius = int(params.drop_radius);
 int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
 int inverse_drop_wetness = int(int_max * ((100.0 - params.drop_wetness) / 100.0));
 int dry_amount = int(float(int_max) * (params.dry_rate / 100000.0));
@@ -100,38 +100,27 @@ ivec2 _process_cell(int x, int y) {
 	ivec2 w = _wick(x - 1, y, x, y);
 	ivec2 e = _wick(x + 1, y, x, y);
 
-	int straight =
+	int delta =
 		n.x / diffusion_limit +
 		s.x / diffusion_limit +
 		w.x / diffusion_limit +
 		e.x / diffusion_limit;
 
 	int p = getp(x, y, tmp_pigment);
-	int straightp =
+	int deltap =
 		n.y / diffusion_limit +
 		s.y / diffusion_limit +
 		w.y / diffusion_limit +
 		e.y / diffusion_limit;
 
-	int diagonal = 0;
-	// if (sample_diagonally) {
-	// 	int ne = (_wick(x + 1, y - 1, x, y).x / diffusion_limit) / diagonal_reduction;
-	// 	int nw = (_wick(x - 1, y - 1, x, y).x / diffusion_limit) / diagonal_reduction;
-	// 	int se = (_wick(x + 1, y + 1, x, y).x / diffusion_limit) / diagonal_reduction;
-	// 	int sw = (_wick(x - 1, y + 1, x, y).x / diffusion_limit) / diagonal_reduction;
-	// 	diagonal = ne + nw  + se + sw;
-	// }
-
-	int delta = straight + diagonal;
-	int deltap = straightp;
 	return ivec2(v + delta, p + deltap);
 }
 
 
-bool in_circle(int x, int y) {
+bool in_circle(int x, int y, int radius) {
   int dx = x - click_x;
   int dy = y - click_y;
-  return (dx * dx + dy * dy <= radius_square);
+  return (dx * dx + dy * dy <= radius * radius);
 }
 
 void main() {
@@ -157,10 +146,13 @@ void main() {
 
 	/* Process input */
 	if (click_button > 0) {
-		if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
-			click_button == 1 ?
-				setp(x, y, tmp_pigment, drop_wetness) :
+		if (click_x > 0 && click_y > 0) {
+			if (in_circle(x, y, radius * 2)) {
 				setv(x, y, drop_wetness);
+			}
+			if (in_circle(x, y, radius)) {
+				setp(x, y, tmp_pigment, drop_wetness);
+			}
 		}
 	}
 

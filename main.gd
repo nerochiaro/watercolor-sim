@@ -52,7 +52,7 @@ var _front_first = true
 
 var _debug: RID
 var _print_iterations = 6
-var _print_cells = true
+var _print_cells = false
 
 var _click_pos := Vector2i.ZERO
 var _click_button := MOUSE_BUTTON_NONE
@@ -60,6 +60,7 @@ var _iteration := 0
 
 func prepare_initial_state() -> PackedInt32Array:
 	var _sim := SimState.new(width, height)
+	return _sim._data
 
 	# Draw margin
 	for i in height:
@@ -201,8 +202,12 @@ func _create_push_constant() -> PackedFloat32Array:
 	return pc
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
+	if event is InputEventMouseMotion:
+		if event.button_mask > 0:
+			_click_pos = event.position
+			_click_button = event.button_mask
+	elif event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
 			if event.pressed:
 				_click_pos = event.position
-				_click_button = event.button_index
+				_click_button = event.button_mask
