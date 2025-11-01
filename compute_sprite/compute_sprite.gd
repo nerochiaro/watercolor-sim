@@ -125,7 +125,6 @@ func _render_process() -> void:
 			rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 
 		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
-		rd.barrier(compute_list)
 
 	rd.compute_list_end()
 

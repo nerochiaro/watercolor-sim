@@ -27,7 +27,15 @@ layout(set = 1, binding = 1, std430) restrict buffer SimDataWrite {
     int data[];
 } sim_write;
 
-layout(set = 1, binding = 2, std430) restrict buffer SimDebug {
+layout(set = 1, binding = 2, std430) restrict buffer SimPigmentRead {
+    ivec4 data[];
+} sim_pigment_read;
+
+layout(set = 1, binding = 3, std430) restrict buffer SimPigmentWrite {
+    ivec4 data[];
+} sim_pigment_write;
+
+layout(set = 1, binding = 4, std430) restrict buffer SimDebug {
     int data[];
 } debug;
 
@@ -35,6 +43,7 @@ const int int_max = 2147483647;
 const int diffusion_limit = 6;
 const bool sample_diagonally = true;
 const int diagonal_reduction = 2;
+const int tmp_pigment = 0;
 
 // Unpack and convert the push constant data (which is a Godot PackedFloatArray remapped to GLSL types, conceptually)
 int width = int(params.size.x);
@@ -46,6 +55,7 @@ int radius_square = int(params.drop_radius) * int(params.drop_radius);
 int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
 int inverse_drop_wetness = int(int_max * ((100.0 - params.drop_wetness) / 100.0));
 int dry_amount = int(float(int_max) * (params.dry_rate / 100000.0));
+int pigment_flow = int(float(int_max) * 0.4);
 
 int getv(int x, int y) {
     return sim_read.data[width * y + x];
@@ -55,42 +65,68 @@ void setv(int x, int y, int value) {
     sim_write.data[width * y + x] = value;
 }
 
-int _wick(int from_x, int from_y, int to_x, int to_y) {
+int getp(int x, int y, int i) {
+    ivec4 c = sim_pigment_read.data[width * y + x];
+	return c[i];
+}
+
+void setp(int x, int y, int i, int value) {
+    sim_pigment_write.data[width * y + x][i] = value;
+}
+
+ivec2 _wick(int from_x, int from_y, int to_x, int to_y) {
 	if (from_x < 0 || from_y < 0 || from_x >= width || from_y >= height) {
-		return 0;
+		return ivec2(0, 0);
     }
 
 	int v = getv(to_x, to_y);
 	int o = getv(from_x, from_y);
 	if (v != 0 && o != 0) {
 		int diff = o - v;
-		if (diff != 0) {
-			return diff;
-        }
+
+		int vp = getp(to_x, to_y, tmp_pigment);
+		int op = getp(from_x, from_y, tmp_pigment);
+		int diffp = op - vp;
+
+		return ivec2(diff, diffp);
     }
-	return 0;
+	return ivec2(0, 0);
 }
 
-int _process_cell(int x, int y) {
+ivec2 _process_cell(int x, int y) {
 	int v = getv(x, y);
-	int n = _wick(x, y - 1, x, y) / diffusion_limit;
-	int s = _wick(x, y + 1, x, y) / diffusion_limit;
-	int w = _wick(x - 1, y, x, y) / diffusion_limit;
-	int e = _wick(x + 1, y, x, y) / diffusion_limit;
-	int straight = n + s + w + e;
+	ivec2 n = _wick(x, y - 1, x, y);
+	ivec2 s = _wick(x, y + 1, x, y);
+	ivec2 w = _wick(x - 1, y, x, y);
+	ivec2 e = _wick(x + 1, y, x, y);
+
+	int straight =
+		n.x / diffusion_limit +
+		s.x / diffusion_limit +
+		w.x / diffusion_limit +
+		e.x / diffusion_limit;
+
+	int p = getp(x, y, tmp_pigment);
+	int straightp =
+		n.y / diffusion_limit +
+		s.y / diffusion_limit +
+		w.y / diffusion_limit +
+		e.y / diffusion_limit;
 
 	int diagonal = 0;
-	if (sample_diagonally) {
-		int ne = (_wick(x + 1, y - 1, x, y) / diffusion_limit) / diagonal_reduction;
-		int nw = (_wick(x - 1, y - 1, x, y) / diffusion_limit) / diagonal_reduction;
-		int se = (_wick(x + 1, y + 1, x, y) / diffusion_limit) / diagonal_reduction;
-		int sw = (_wick(x - 1, y + 1, x, y) / diffusion_limit) / diagonal_reduction;
-		diagonal = ne + nw  + se + sw;
-	}
+	// if (sample_diagonally) {
+	// 	int ne = (_wick(x + 1, y - 1, x, y).x / diffusion_limit) / diagonal_reduction;
+	// 	int nw = (_wick(x - 1, y - 1, x, y).x / diffusion_limit) / diagonal_reduction;
+	// 	int se = (_wick(x + 1, y + 1, x, y).x / diffusion_limit) / diagonal_reduction;
+	// 	int sw = (_wick(x - 1, y + 1, x, y).x / diffusion_limit) / diagonal_reduction;
+	// 	diagonal = ne + nw  + se + sw;
+	// }
 
 	int delta = straight + diagonal;
-	return v + delta;
+	int deltap = straightp;
+	return ivec2(v + delta, p + deltap);
 }
+
 
 bool in_circle(int x, int y) {
   int dx = x - click_x;
@@ -106,20 +142,32 @@ void main() {
         return;
     }
 
-    int cell = _process_cell(x, y);
+	/* Diffuse the wetness and pigment */
+    ivec2 d = _process_cell(x, y);
+
+	int cell = d.x;
 	cell = int(max(cell - dry_amount, 0));
     setv(x, y, cell);
+
+	int cellp = d.y;
+	// int cellp = getp(x, y, 1);
+	setp(x, y, tmp_pigment, cellp);
+
+	debug.data[x + width * y] = cellp;
 
 	/* Process input */
 	if (click_button > 0) {
 		if (click_x > 0 && click_y > 0 && in_circle(x, y)) {
-			setv(x, y, click_button == 1 ? drop_wetness : inverse_drop_wetness);
+			click_button == 1 ?
+				setp(x, y, tmp_pigment, drop_wetness) :
+				setv(x, y, drop_wetness);
 		}
 	}
 
-    // Assign the value as greyscale to the output image texture
+    /* Assign the values to the output image texture */
     float c = cell / float(int_max);
-	vec4 color = vec4(c, c, c, 1.0);
+	float cp = cellp / float(int_max);
+	vec4 color = vec4(c, cp, 0.0, 1.0);
 	ivec2 coord = ivec2(x, y);
     imageStore(out_image, coord, color);
 }

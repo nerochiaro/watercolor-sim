@@ -8,7 +8,12 @@ void vertex() {
 }
 
 void fragment() {
-	COLOR = texture(effect_texture, UV);
+	vec4 s = texture(effect_texture, UV);
+	vec4 w = vec4(0.0, 0.0, 1.0, s.x);
+	vec4 p = vec4(1.0, 0.0, 0.0, s.y);
+	vec3 b = (p.rgb * p.a) + (w.rgb * (1.0 - p.a));
+	float a = p.a + w.a * (1.0 - p.a);
+	COLOR = vec4(b.rgb, a);
 }
 
 //void light() {

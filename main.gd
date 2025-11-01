@@ -46,9 +46,14 @@ var _dry_rate: float = 4.0
 # They are ping pong buffers: one is read from and the other written to, then at each frame they are swapped
 var _sim_buffer_front: RID
 var _sim_buffer_back: RID
-var _debug: RID
-var _print_cells = false
+var _sim_pigment_front: RID
+var _sim_pigment_back: RID
 var _front_first = true
+
+var _debug: RID
+var _print_iterations = 6
+var _print_cells = true
+
 var _click_pos := Vector2i.ZERO
 var _click_button := MOUSE_BUTTON_NONE
 var _iteration := 0
@@ -80,24 +85,26 @@ func _ready():
 	%UI.dry_rate_changed.connect(func (value: float): _dry_rate = value)
 
 func on_frame_post_draw():
-	if _iteration < 4:
+	if _iteration < _print_iterations:
 		if _print_cells:
 			var rd = RenderingServer.get_rendering_device()
 			var data = rd.buffer_get_data(_sim_buffer_front)
 			var idata = data.to_int32_array()
-			prints("================", _iteration)
-			for y in height:
-				var row := idata.slice(y * width, y * width + width)
+			prints("================", _iteration, data.size())
+			for y in min(height, 5):
+				var w = min(width, 5)
+				var row := idata.slice(y * w, y * w + w)
 				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
 				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 
 			var ddata = rd.buffer_get_data(_debug)
 			var didata = ddata.to_int32_array()
 			prints(" ")
-			for y in height:
-				var row := didata.slice(y * width, y * width + width)
-				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
-				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
+			for y in min(height, 5):
+				var w = min(width, 5)
+				var row := didata.slice(y * w, y * w + w)
+				#print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
+				print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 	_iteration += 1
 
 func _init_sim():
@@ -107,6 +114,22 @@ func _init_sim():
 	var input_bytes := input.to_byte_array()
 	_sim_buffer_front = rd.storage_buffer_create(input_bytes.size(), input_bytes)
 	_sim_buffer_back = rd.storage_buffer_create(input_bytes.size(), input_bytes)
+
+	var empty: Array[Vector4i] = []
+	empty.resize(width * height)
+	empty.fill(Vector4i.ZERO)
+
+	var empty_bytes = PackedByteArray()
+	empty_bytes.resize(16 * empty.size())
+	for j in empty.size():
+		var i = empty[j]
+		empty_bytes.encode_s32(j * 16 + 0, i.x)
+		empty_bytes.encode_s32(j * 16 + 4, i.y)
+		empty_bytes.encode_s32(j * 16 + 8, i.z)
+		empty_bytes.encode_s32(j * 16 + 12, i.w)
+
+	_sim_pigment_front = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
+	_sim_pigment_back = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
 
 	var debug_data = PackedInt32Array([])
 	debug_data.resize(width * height)
@@ -133,14 +156,28 @@ func _create_uniform_set(shader: RID, index: int) -> RID:
 	uniform_back.binding = 1
 	uniform_back.add_id(_sim_buffer_back if _front_first else _sim_buffer_front)
 
+	var uniform_pigment_front := RDUniform.new()
+	uniform_pigment_front.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	uniform_pigment_front.binding = 2
+	uniform_pigment_front.add_id(_sim_pigment_front if _front_first else _sim_pigment_back)
+
+	var uniform_pigment_back := RDUniform.new()
+	uniform_pigment_back.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	uniform_pigment_back.binding = 3
+	uniform_pigment_back.add_id(_sim_pigment_back if _front_first else _sim_pigment_front)
+
 	_front_first = not _front_first
 
 	var uniform_debug := RDUniform.new()
 	uniform_debug.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	uniform_debug.binding = 2
+	uniform_debug.binding = 4
 	uniform_debug.add_id(_debug)
 
-	var uniform_set = rd.uniform_set_create([uniform_front, uniform_back, uniform_debug], shader, index)
+	var uniform_set = rd.uniform_set_create([
+			uniform_front, uniform_back,
+			uniform_pigment_front, uniform_pigment_back,
+			uniform_debug
+		], shader, index)
 	return uniform_set
 
 func _create_push_constant() -> PackedFloat32Array:
