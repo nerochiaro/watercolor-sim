@@ -42,6 +42,7 @@ var _drop_wetness: float = 20.0
 var _pigment_drop_size: int = 20
 var _pigment_drop_wetness: float = 80.0
 var _dry_rate: float = 4.0
+var _fiber_count: int = 512
 
 # The SSBO buffers used for the simulation by the compute shader.
 # They are ping pong buffers: one is read from and the other written to, then at each frame they are swapped
@@ -49,6 +50,7 @@ var _sim_buffer_front: RID
 var _sim_buffer_back: RID
 var _sim_pigment_front: RID
 var _sim_pigment_back: RID
+var _sim_fibers: RID
 var _front_first = true
 
 var _debug: RID
@@ -57,6 +59,7 @@ var _print_cells = false
 
 var _click_pos := Vector2i.ZERO
 var _click_button := MOUSE_BUTTON_NONE
+var _hide_fibers := true
 var _iteration := 0
 
 func prepare_initial_state() -> PackedInt32Array:
@@ -79,12 +82,21 @@ func prepare_initial_state() -> PackedInt32Array:
 
 	return _sim._data
 
+func prepare_fibers(amount: int) -> PackedFloat32Array:
+	var fibers = PackedFloat32Array()
+	fibers.resize(width * height)
+	fibers.fill(0.0)
+	for i in amount:
+		var from = Vector2i(randi() % 512, randi() % 512)
+		var to = Vector2i(randi() % 512, randi() % 512)
+		var line = Geometry2D.bresenham_line(from, to)
+		for p in line:
+			fibers[p.x + width * p.y] = 1.0
+	return fibers
+
 func _ready():
 	RenderingServer.call_on_render_thread(_init_sim)
 	RenderingServer.frame_post_draw.connect(on_frame_post_draw)
-	%UI.drop_size_changed.connect(func (value: float): _drop_size = int(value))
-	%UI.drop_wetness_changed.connect(func (value: float): _drop_wetness = value)
-	%UI.dry_rate_changed.connect(func (value: float): _dry_rate = value)
 
 func on_frame_post_draw():
 	if _iteration < _print_iterations:
@@ -133,6 +145,13 @@ func _init_sim():
 	_sim_pigment_front = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
 	_sim_pigment_back = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
 
+	var fibers = prepare_fibers(_fiber_count)
+	var fiber_bytes = PackedByteArray()
+	fiber_bytes.resize(4 * fibers.size())
+	for i in fibers.size():
+		fiber_bytes.encode_float(i * 4, fibers[i])
+	_sim_fibers = rd.storage_buffer_create(fiber_bytes.size(), fiber_bytes)
+	
 	var debug_data = PackedInt32Array([])
 	debug_data.resize(width * height)
 	debug_data.fill(0)
@@ -170,14 +189,20 @@ func _create_uniform_set(shader: RID, index: int) -> RID:
 
 	_front_first = not _front_first
 
+	var uniform_fibers := RDUniform.new()
+	uniform_fibers.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	uniform_fibers.binding = 4
+	uniform_fibers.add_id(_sim_fibers)
+	
 	var uniform_debug := RDUniform.new()
 	uniform_debug.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	uniform_debug.binding = 4
+	uniform_debug.binding = 5
 	uniform_debug.add_id(_debug)
 
 	var uniform_set = rd.uniform_set_create([
 			uniform_front, uniform_back,
 			uniform_pigment_front, uniform_pigment_back,
+			uniform_fibers,
 			uniform_debug
 		], shader, index)
 	return uniform_set
@@ -195,9 +220,7 @@ func _create_push_constant() -> PackedFloat32Array:
 		%UI.pigment_drop_wetness,
 		%UI.dry_rate,
 		_iteration,
-		0,
-		0,
-		0
+		_hide_fibers,
 	])
 	_click_pos = Vector2i.ZERO
 	_click_button = MOUSE_BUTTON_NONE
@@ -210,7 +233,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_click_pos = event.position
 			_click_button = event.button_mask
 	elif event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
-			if event.pressed:
-				_click_pos = event.position
-				_click_button = event.button_mask
+		if event.pressed:
+			_click_pos = event.position
+			_click_button = event.button_mask
+	if event is InputEventKey:
+		if event.keycode == Key.KEY_A:
+			_hide_fibers = true
+		elif event.keycode == Key.KEY_S:
+			_hide_fibers = false
+			

@@ -17,7 +17,10 @@ void fragment() {
 	// we do this because the water is only shown for helping understand what is being painted
 	vec3 b = (p.rgb * p.a) + (w.rgb * w.a * (1.0 - p.a));
 	float a = p.a + w.a * (1.0 - p.a);
-	COLOR = vec4(b.rgb, clamp(a, 0.0, 1.0));
+	
+	vec4 f = vec4(1.0, 0.0, 0.0, s.z);               // fibers
+	
+	COLOR = s.z != 0.0 ? f : vec4(b.rgb, clamp(a, 0.0, 1.0));
 }
 
 //void light() {
