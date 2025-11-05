@@ -14,6 +14,8 @@ layout(push_constant, std430) uniform Params {
 	float click_button;
 	float drop_radius;
 	float drop_wetness;
+	float pigment_drop_radius;
+	float pigment_drop_wetness;
 	float dry_rate;
 	float iteration;
 } params;
@@ -52,10 +54,10 @@ int click_x = int(params.click.x);
 int click_y = int(params.click.y);
 int click_button = int(params.click_button);
 int radius = int(params.drop_radius);
+int pigment_radius = int(params.pigment_drop_radius);
 int drop_wetness = int(int_max * (params.drop_wetness / 100.0));
-int inverse_drop_wetness = int(int_max * ((100.0 - params.drop_wetness) / 100.0));
+int pigment_drop_wetness = int(int_max * (params.pigment_drop_wetness / 100.0));
 int dry_amount = int(float(int_max) * (params.dry_rate / 100000.0));
-int pigment_flow = int(float(int_max) * 0.4);
 
 int getv(int x, int y) {
     return sim_read.data[width * y + x];
@@ -147,11 +149,14 @@ void main() {
 	/* Process input */
 	if (click_button > 0) {
 		if (click_x > 0 && click_y > 0) {
-			if (in_circle(x, y, radius * 2)) {
-				setv(x, y, drop_wetness);
+			if (in_circle(x, y, radius) && ((click_button & 1) > 0 || (click_button & 4) > 0)) {
+				int v = int_max - drop_wetness >= cell ? cell + drop_wetness : int_max;
+				setv(x, y, v);
 			}
-			if (in_circle(x, y, radius)) {
-				setp(x, y, tmp_pigment, drop_wetness);
+
+			if (in_circle(x, y, pigment_radius) && ((click_button & 2) > 0 || (click_button & 4) > 0)) {
+				int p = int_max - pigment_drop_wetness >= cellp ? cellp + pigment_drop_wetness : int_max;
+				setp(x, y, tmp_pigment, p);
 			}
 		}
 	}

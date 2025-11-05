@@ -38,8 +38,9 @@ class SimState:
 
 @export var width := 512
 @export var height := 512
-var _drop_size: int = 20
-var _drop_wetness: float = 80.0
+var _drop_wetness: float = 20.0
+var _pigment_drop_size: int = 20
+var _pigment_drop_wetness: float = 80.0
 var _dry_rate: float = 4.0
 
 # The SSBO buffers used for the simulation by the compute shader.
@@ -188,9 +189,11 @@ func _create_push_constant() -> PackedFloat32Array:
 		_click_pos.x,
 		_click_pos.y,
 		_click_button,
-		_drop_size,
-		_drop_wetness,
-		_dry_rate,
+		%UI.drop_size,
+		%UI.drop_wetness,
+		%UI.pigment_drop_size,
+		%UI.pigment_drop_wetness,
+		%UI.dry_rate,
 		_iteration,
 		0,
 		0,
