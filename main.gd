@@ -38,10 +38,6 @@ class SimState:
 
 @export var width := 512
 @export var height := 512
-var _drop_wetness: float = 20.0
-var _pigment_drop_size: int = 20
-var _pigment_drop_wetness: float = 80.0
-var _dry_rate: float = 4.0
 var _fiber_count: int = 512
 
 # The SSBO buffers used for the simulation by the compute shader.
