@@ -19,6 +19,7 @@ layout(push_constant, std430) uniform Params {
 	float dry_rate;
 	float iteration;
 	float hide_fibers;
+	float time;
 } params;
 
 // Simulation buffers

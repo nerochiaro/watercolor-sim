@@ -217,6 +217,10 @@ func _create_push_constant() -> PackedFloat32Array:
 		%UI.dry_rate,
 		_iteration,
 		_hide_fibers,
+		Time.get_unix_time_from_system(),
+		0.0,
+		0.0,
+		0.0
 	])
 	_click_pos = Vector2i.ZERO
 	_click_button = MOUSE_BUTTON_NONE
