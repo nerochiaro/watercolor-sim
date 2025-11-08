@@ -50,7 +50,7 @@ var _sim_fibers: RID
 var _front_first = true
 
 var _debug: RID
-var _print_iterations = 6
+var _print_iterations = 16
 var _print_cells = false
 
 var _click_pos := Vector2i.ZERO
@@ -108,13 +108,13 @@ func on_frame_post_draw():
 				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 
 			var ddata = rd.buffer_get_data(_debug)
-			var didata = ddata.to_int32_array()
+			var didata = ddata.to_float32_array()
 			prints(" ")
 			for y in min(height, 5):
 				var w = min(width, 5)
 				var row := didata.slice(y * w, y * w + w)
-				#print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
-				print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
+				print(Array(row).map(func (i): return "%s%1.4f" % [" " if i >= 0 else "", i]))
+				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 	_iteration += 1
 
 func _init_sim():
@@ -148,9 +148,9 @@ func _init_sim():
 		fiber_bytes.encode_float(i * 4, fibers[i])
 	_sim_fibers = rd.storage_buffer_create(fiber_bytes.size(), fiber_bytes)
 	
-	var debug_data = PackedInt32Array([])
+	var debug_data = PackedFloat32Array([])
 	debug_data.resize(width * height)
-	debug_data.fill(0)
+	debug_data.fill(0.0)
 	debug_data = debug_data.to_byte_array()
 	_debug = rd.storage_buffer_create(debug_data.size(), debug_data)
 

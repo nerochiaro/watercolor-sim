@@ -43,7 +43,7 @@ layout(set = 1, binding = 4, std430) restrict buffer SimFibers {
 } fibers;
 
 layout(set = 1, binding = 5, std430) restrict buffer SimDebug {
-    int data[];
+    float data[];
 } debug;
 
 const int int_max = 2147483647;
@@ -181,7 +181,7 @@ void main() {
 	//if (cell == 0 && cellp < trace_pigment_limit && getf(x, y) != 1.0) cellp = 0;
 	setp(x, y, tmp_pigment, cellp);
 
-	debug.data[x + width * y] = cellp;
+	debug.data[x + width * y] = rand(x, y);
 
 	/* Process input */
 	if (click_button > 0) {
