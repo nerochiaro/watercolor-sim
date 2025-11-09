@@ -7,31 +7,41 @@ class_name ComputeSprite2D
 @export var group_size: int = 16;
 
 ## If a [@class Callable] is passed, it will be called on the rendering thread
-## once per compute iteration (of which there can be multiple per frame).
-## It should create and return an additional uniform set to match additional data
+## before the first compute iteration.
+## It should create an additional uniform set to match additional data
 ## needed by your compute shader.
 ## 
 ## The Callable should have this signature:
-## [code]func _name(shader: RID, int index) -> RID[/code]
+## [code]func _name(shader: RID, int index) -> void[/code]
 ## 
-## It should create a new uniform set (for shader and index) on the main
+## It should create a uniform set (for shader and index) on the main
 ## `[@class RenderingDevice] (i.e. using [@method RenderingServer.get_rendering_device])
-## and then return its RID.
 @export var create_uniform_set: Callable
 
-## Same as [@method create_uniform_set] but for the push constant
+## If a [@class Callable] is passed, it will be called on the rendering thread
+## for each compute iteration (of which there can be multiple per frame).
+##
+## The Callable should have this signature:
+## [code]func _name(shader: RID, int index) -> void[/code]
+##
+## It should return the uniform set (for shader and index) created by
+## [@method create_uniform_set] (and potentially updated as needed for this iteration).
+@export var update_uniform_set: Callable
+
+## Same as [@method update_uniform_set] but for the push constant
 ## The Callable should have this signature:
 ## [code]func _name() -> PackedFloat32Array[/code]
 ##
 ## The byte array should match the data declared in the shader's push constant declaration,
 ## padded to multiples of 4 elements.
-@export var create_push_constant: Callable
+@export var update_push_constant: Callable
 
 var rd: RenderingDevice
 var shader: RID
 var pipeline: RID
 var shared_texture: Texture2DRD = Texture2DRD.new()
 var shared_texture_rid: RID
+var extra_uniform_set_initialized: bool = false
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -112,16 +122,25 @@ func _render_process() -> void:
 	uniform.add_id(shared_texture_rid)
 	var uniform_set = rd.uniform_set_create([uniform], shader, 0)
 
+	# Call the user-defined function to initialize the extra uniform set for the
+	# shader.
+	if not extra_uniform_set_initialized and create_uniform_set != null:
+		create_uniform_set.call(shader, 1)
+		extra_uniform_set_initialized = true
+
 	# Run the compute shader.
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 
 	for i in iterations_per_frame:
 		rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
-		if create_uniform_set:
-			var extra_uniform_set = create_uniform_set.call(shader, 1)
+
+		if update_uniform_set:
+			var extra_uniform_set = update_uniform_set.call(shader, 1)
 			rd.compute_list_bind_uniform_set(compute_list, extra_uniform_set, 1)
-			var push_constant = create_push_constant.call()
+
+		if update_push_constant:
+			var push_constant = update_push_constant.call()
 			rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 
 		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
