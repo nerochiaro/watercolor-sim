@@ -11,6 +11,8 @@ var _print_cells = false
 
 var _click_pos := Vector2i.ZERO
 var _click_button := MOUSE_BUTTON_NONE
+var _movement_speed = 10
+
 var _hide_fibers := true
 var _iteration := 0
 var _frame := 0
@@ -81,23 +83,31 @@ func _update_push_constant() -> PackedFloat32Array:
 		0.0,
 		0.0
 	])
-	_click_pos = Vector2i.ZERO
+	#_click_pos = Vector2i.ZERO
 	_click_button = MOUSE_BUTTON_NONE
 	_iteration += 1
 	return pc
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		if event.button_mask > 0:
-			_click_pos = event.position
-			_click_button = event.button_mask
-	elif event is InputEventMouseButton:
+	#if event is InputEventMouseMotion:
+		#if event.button_mask > 0:
+			#_click_pos = event.position
+			#_click_button = event.button_mask
+	if event is InputEventMouseButton:
 		if event.pressed:
-			_click_pos = event.position
+			#_click_pos = event.position
 			_click_button = event.button_mask
 	if event is InputEventKey:
 		if event.keycode == Key.KEY_A:
 			_hide_fibers = true
 		elif event.keycode == Key.KEY_S:
 			_hide_fibers = false
-			
+		elif event.keycode == Key.KEY_LEFT:
+			_click_pos += Vector2i(-1 * _movement_speed, 0)
+		elif event.keycode == Key.KEY_RIGHT:
+			_click_pos += Vector2i(+1 * _movement_speed, 0)
+		elif event.keycode == Key.KEY_UP:
+			_click_pos += Vector2i(0, -1 * _movement_speed)
+		elif event.keycode == Key.KEY_DOWN:
+			_click_pos += Vector2i(0, +1 * _movement_speed)
+		_click_pos = _click_pos.clampi(0, width)

@@ -103,9 +103,11 @@ const float noise_scale = 2.8;
 float rand(int x, int y) {
 	vec2 g; // this is unused, and passed to the last (out) parameter, so the psrdnoise will not calculate it at all
 	float t = noise_scale;
-	float a = (int(params.time * 1000) % 64) * (1.0 / 64.0);
+	float a = mod(params.time * 10000, 64) * (1.0 / 64.0);
 	float noise_v = psrdnoise(vec2(x, y) / t, vec2(0.0, 0.0), a, g);
-	return (noise_v + 1.0) / 2.0;  // rescale in [0.0, 1.0] range from [-1.0, 1.0] range
+	float noise_scaled = (noise_v + 1.0) / 2.0;
+	debug.data[x + width * y] = noise_scaled;
+	return noise_scaled;  // rescale in [0.0, 1.0] range from [-1.0, 1.0] range
 }
 
 exchange _wick(int from_x, int from_y, int to_x, int to_y, float to_fiber) {
@@ -207,9 +209,19 @@ void main() {
 	//if (cell == 0 && cellp < trace_pigment_limit && getf(x, y) != 1.0) cellp = 0;
 	setp(x, y, tmp_pigment, cellp);
 
-	debug.data[x + width * y] = rand(x, y);
 
 	/* Process input */
+	if (click_x > 0 && click_y > 0) {
+		if (in_circle(x, y, radius / 2)) {
+			int v = drop_wetness;
+			setv(x, y, v);
+		}
+		if (in_circle(x, y, pigment_radius / 2)) {
+			int p = pigment_drop_wetness;
+			setp(x, y, tmp_pigment, p);
+		}
+	}
+
 	if (click_button > 0) {
 		if (click_x > 0 && click_y > 0) {
 			if (in_circle(x, y, radius) && ((click_button & 1) > 0 || (click_button & 4) > 0)) {
