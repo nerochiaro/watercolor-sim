@@ -41,6 +41,9 @@ var shader: RID
 var pipeline: RID
 var shared_texture: Texture2DRD = Texture2DRD.new()
 var shared_texture_rid: RID
+var shared_texture_uniform: RDUniform
+var shared_texture_uniform_set: RID
+
 var extra_uniform_set_initialized: bool = false
 
 # Called when the node enters the scene tree for the first time.
@@ -106,6 +109,13 @@ func _initialize_compute_code():
 	# Clear the shared texture to prevent it from starting with garbage in it.
 	rd.texture_clear(shared_texture_rid, Color(0, 0, 0.0, 0.0), 0, 1, 0, 1)
 
+	# Create the main uniform for the shared texture
+	shared_texture_uniform = RDUniform.new()
+	shared_texture_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	shared_texture_uniform.binding = 0
+	shared_texture_uniform.add_id(shared_texture_rid)
+	shared_texture_uniform_set = rd.uniform_set_create([shared_texture_uniform], shader, 0)
+
 func _render_process() -> void:
 	# Calculate our dispatch group size.
 	# We do `(n - 1) / (8 + 1)` in case our texture size is not nicely divisible by 8.
@@ -115,16 +125,8 @@ func _render_process() -> void:
 	@warning_ignore("integer_division")
 	var y_groups := (texture_size.y - 1) / group_size + 1
 
-	# Pass the shared texture to the compute shader
-	var uniform := RDUniform.new()
-	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	uniform.binding = 0
-	uniform.add_id(shared_texture_rid)
-	var uniform_set = rd.uniform_set_create([uniform], shader, 0)
-
-	# Call the user-defined function to initialize the extra uniform set for the
-	# shader.
-	if not extra_uniform_set_initialized and create_uniform_set != null:
+	# Call the user-defined function to initialize the extra uniform set for the shader.
+	if (not extra_uniform_set_initialized) and create_uniform_set:
 		create_uniform_set.call(shader, 1)
 		extra_uniform_set_initialized = true
 
@@ -133,7 +135,7 @@ func _render_process() -> void:
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 
 	for i in iterations_per_frame:
-		rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
+		rd.compute_list_bind_uniform_set(compute_list, shared_texture_uniform_set, 0)
 
 		if update_uniform_set:
 			var extra_uniform_set = update_uniform_set.call(shader, 1)
