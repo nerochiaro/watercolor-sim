@@ -4,7 +4,6 @@ extends Node2D
 @export var height := 512
 
 var _sim: SimGPU
-var Int := SimGPU.Int
 
 var _print_frames = 4
 var _print_cells = false
@@ -31,8 +30,7 @@ func on_frame_post_draw():
 			for y in min(height, 5):
 				var w = min(width, 5)
 				var row := idata.slice(y * w, y * w + w)
-				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", Int.tof(i)]))
-				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
+				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", i]))
 
 			var ddata = rd.buffer_get_data(_sim.buf_debug)
 			var didata = ddata.to_float32_array()
@@ -41,7 +39,6 @@ func on_frame_post_draw():
 				var w = min(width, 5)
 				var row := didata.slice(y * w, y * w + w)
 				print(Array(row).map(func (i): return "%s%1.4f" % [" " if i >= 0 else "", i]))
-				#print(Array(row).map(func (i): return "%s%10d" % [" " if i >= 0 else "", i]))
 	_frame += 1
 
 func _init_sim():

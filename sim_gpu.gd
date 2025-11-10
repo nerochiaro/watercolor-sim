@@ -5,15 +5,6 @@ class_name SimGPU
 @export var height: int
 @export var fiber_count: int 
 
-class Int:
-	static func tof(value: int) -> float:
-		return remap(value, 0, Int.MAX, 0.0, 1.0)
-
-	static func fromf(value: float) -> int:
-		return roundi(remap(value, 0.0, 1.0, 0.0, Int.MAX))
-
-	const MAX = Vector3i.MAX.x;
-
 class PingPongUniformSet:
 	var uni_water_front: RDUniform
 	var uni_water_back: RDUniform
@@ -90,24 +81,17 @@ func _prepare_fibers() -> PackedFloat32Array:
 
 # Call on rendering thread only
 func create_buffers(rd: RenderingDevice):
-	var input := PackedInt32Array()
+	var input := PackedFloat32Array()
 	input.resize(width * height)
-	input.fill(0)
+	input.fill(0.0)
 	var input_bytes := input.to_byte_array()
 	buf_water_front = rd.storage_buffer_create(input_bytes.size(), input_bytes)
 	buf_water_back = rd.storage_buffer_create(input_bytes.size(), input_bytes)
 
-	var empty: Array[Vector4i] = []
+	var empty: PackedVector4Array = []
 	empty.resize(width * height)
-	empty.fill(Vector4i.ZERO)
-	var empty_bytes = PackedByteArray()
-	empty_bytes.resize(16 * empty.size())
-	for j in empty.size():
-		var i = empty[j]
-		empty_bytes.encode_s32(j * 16 + 0, i.x)
-		empty_bytes.encode_s32(j * 16 + 4, i.y)
-		empty_bytes.encode_s32(j * 16 + 8, i.z)
-		empty_bytes.encode_s32(j * 16 + 12, i.w)
+	empty.fill(Vector4.ZERO)
+	var empty_bytes := empty.to_byte_array()
 
 	buf_pigment_front = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
 	buf_pigment_back = rd.storage_buffer_create(empty_bytes.size(), empty_bytes)
