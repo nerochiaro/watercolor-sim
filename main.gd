@@ -90,12 +90,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_hide_fibers = true
 		elif event.keycode == Key.KEY_S:
 			_hide_fibers = false
-		elif event.keycode == Key.KEY_LEFT:
-			_click_pos += Vector2i(-1 * _movement_speed, 0)
-		elif event.keycode == Key.KEY_RIGHT:
-			_click_pos += Vector2i(+1 * _movement_speed, 0)
-		elif event.keycode == Key.KEY_UP:
-			_click_pos += Vector2i(0, -1 * _movement_speed)
-		elif event.keycode == Key.KEY_DOWN:
-			_click_pos += Vector2i(0, +1 * _movement_speed)
-		_click_pos = _click_pos.clampi(0, width)
+		
+		if event.pressed:
+			print(event)
+			if event.keycode == Key.KEY_LEFT:
+				_click_pos += Vector2i(-1 * _movement_speed, 0)
+			elif event.keycode == Key.KEY_RIGHT:
+				_click_pos += Vector2i(+1 * _movement_speed, 0)
+			elif event.keycode == Key.KEY_UP:
+				_click_pos += Vector2i(0, -1 * _movement_speed)
+			elif event.keycode == Key.KEY_DOWN:
+				_click_pos += Vector2i(0, +1 * _movement_speed)
+			_click_pos = _click_pos.clampi(0, width)
