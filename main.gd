@@ -48,42 +48,33 @@ func _init_sim():
 	_sim.create_buffers(rd)
 
 	%Sim.texture_size = Vector2i(width, height)
-	%Sim.create_uniform_set = self._create_uniform_set
-	%Sim.update_uniform_set = self._update_uniform_set
-	%Sim.update_push_constant = self._update_push_constant
-
-func _create_uniform_set(shader: RID, index: int) -> void:
-	var rd = RenderingServer.get_rendering_device()
-	_sim.create_uniforms(rd, shader, index)
-
-# This function is called at each rendering frame, since the compute shader's uniforms need to
-# be swapped each frame.
-func _update_uniform_set(_shader: RID, _index: int) -> RID:
-	return _sim.get_current_uniform_set()
-
-func _update_push_constant() -> PackedFloat32Array:
-	var pc = PackedFloat32Array([
-		width,
-		height,
-		_click_pos.x,
-		_click_pos.y,
-		_click_button,
-		%UI.drop_size,
-		%UI.drop_wetness,
-		%UI.pigment_drop_size,
-		%UI.pigment_drop_wetness,
-		%UI.dry_rate,
-		_iteration,
-		_hide_fibers,
-		Time.get_unix_time_from_system(),
-		0.0,
-		0.0,
-		0.0
-	])
-	#_click_pos = Vector2i.ZERO
-	_click_button = MOUSE_BUTTON_NONE
-	_iteration += 1
-	return pc
+	%Sim.create_uniform_set = func (shader: RID, index: int):
+		_sim.create_uniforms(rd, shader, index)
+	%Sim.update_uniform_set = func (_shader: RID, _index: int) -> RID:
+		return _sim.get_current_uniform_set()
+	%Sim.update_push_constant = func () -> PackedFloat32Array:
+		var pc = PackedFloat32Array([
+			width,
+			height,
+			_click_pos.x,
+			_click_pos.y,
+			_click_button,
+			%UI.drop_size,
+			%UI.drop_wetness,
+			%UI.pigment_drop_size,
+			%UI.pigment_drop_wetness,
+			%UI.dry_rate,
+			_iteration,
+			_hide_fibers,
+			Time.get_unix_time_from_system(),
+			0.0,
+			0.0,
+			0.0
+		])
+		#_click_pos = Vector2i.ZERO
+		_click_button = MOUSE_BUTTON_NONE
+		_iteration += 1
+		return pc
 
 func _unhandled_input(event: InputEvent) -> void:
 	#if event is InputEventMouseMotion:
