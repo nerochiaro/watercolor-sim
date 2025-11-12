@@ -1,7 +1,11 @@
 extends Node2D
 
-@export var width := 512
-@export var height := 512
+var width: int:
+	get:
+		return %Sim.texture_size.x
+var height: int:
+	get:
+		return %Sim.texture_size.y
 
 var _sim: SimGPU
 
@@ -19,6 +23,8 @@ var _frame := 0
 func _ready():
 	RenderingServer.call_on_render_thread(_init_sim)
 	RenderingServer.frame_post_draw.connect(on_frame_post_draw)
+	%Background.texture.width = width
+	%Background.texture.height = height
 
 func on_frame_post_draw():
 	if _frame < _print_frames:

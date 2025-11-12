@@ -25,6 +25,7 @@ centered = false
 [node name="Sim" parent="." instance=ExtResource("2_h2yge")]
 unique_name_in_owner = true
 compute_script = ExtResource("3_h2yge")
+texture_size = Vector2i(1024, 512)
 iterations_per_frame = 16
 
 [node name="UI" parent="." instance=ExtResource("4_1bvp3")]
