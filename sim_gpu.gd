@@ -62,7 +62,7 @@ var uni_ping_pong: Array[PingPongUniformSet] = []
 
 var _front_first: bool = true
 
-func _init(w: int = 512, h: int = 512, fibers: int = 512):
+func _init(w: int, h: int, fibers: int):
 	width = w
 	height = h
 	fiber_count = fibers
@@ -72,8 +72,8 @@ func _prepare_fibers() -> PackedFloat32Array:
 	fibers.resize(width * height)
 	fibers.fill(0.0)
 	for i in fiber_count:
-		var from = Vector2i(randi() % 512, randi() % 512)
-		var to = Vector2i(randi() % 512, randi() % 512)
+		var from = Vector2i(randi() % width, randi() % height)
+		var to = Vector2i(randi() % width, randi() % height)
 		var line = Geometry2D.bresenham_line(from, to)
 		for p in line:
 			fibers[p.x + width * p.y] = 1.0

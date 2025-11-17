@@ -51,7 +51,7 @@ func on_frame_post_draw():
 func _init_sim():
 	var rd = RenderingServer.get_rendering_device()
 
-	_sim = SimGPU.new(width, height)
+	_sim = SimGPU.new(width, height, int(sqrt(width * height)))
 	_sim.create_buffers(rd)
 
 	%Sim.texture_size = Vector2i(width, height)
