@@ -2,6 +2,7 @@ shader_type canvas_item;
 
 uniform sampler2D effect_texture;
 uniform vec2 effect_texture_size;
+uniform bool show_water = true;
 
 void vertex() {
 	// Called for every vertex the material is visible on.
@@ -15,9 +16,13 @@ void fragment() {
 	// composite them with blue underneath, but note that we ensure 
 	// no blue will appear when there is no water present by doing `w.rgb * w.a`
 	// we do this because the water is only shown for helping understand what is being painted
-	vec3 b = (p.rgb * p.a) + (w.rgb * w.a * (1.0 - p.a));
-	float a = p.a + w.a * (1.0 - p.a);
-	
+	vec3 b = show_water ?
+			 (p.rgb * p.a) + (w.rgb * w.a * (1.0 - p.a)) :
+			 p.rgb;
+	float a = show_water ?
+			  p.a + w.a * (1.0 - p.a) :
+			  p.a;
+		
 	vec4 f = vec4(1.0, 0.0, 0.0, s.z);               // fibers
 	
 	COLOR = s.z != 0.0 ? f : vec4(b.rgb, clamp(a, 0.0, 1.0));

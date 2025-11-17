@@ -6,6 +6,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ykrsh"]
 shader = ExtResource("1_tndny")
 shader_parameter/effect_texture_size = Vector2(0, 0)
+shader_parameter/show_water = false
 
 [node name="Sprite2D" type="Sprite2D"]
 material = SubResource("ShaderMaterial_ykrsh")
