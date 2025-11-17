@@ -9,10 +9,10 @@ var height: int:
 
 var _sim: SimGPU
 
-var _print_frames = 4
-var _print_cells = false
+var _print_frames = 6
+var _print_cells = true
 
-var _click_pos := Vector2i.ZERO
+var _click_pos := Vector2i(20, 20)
 var _click_button := MOUSE_BUTTON_NONE
 var _movement_speed = 10
 
@@ -27,16 +27,17 @@ func _ready():
 	%Background.texture.height = height
 
 func on_frame_post_draw():
+	var rd = RenderingServer.get_rendering_device()
+
 	if _frame < _print_frames:
 		if _print_cells:
-			var rd = RenderingServer.get_rendering_device()
-			var data = rd.buffer_get_data(_sim.buf_water_front)
-			var idata = data.to_int32_array()
-			prints("================", _frame, _iteration, Time.get_unix_time_from_system())
-			for y in min(height, 5):
-				var w = min(width, 5)
-				var row := idata.slice(y * w, y * w + w)
-				print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", i]))
+			#var data = rd.buffer_get_data(_sim.buf_water_front)
+			#var idata = data.to_int32_array()
+			prints("================", _frame, _iteration, Time.get_ticks_usec())
+			#for y in min(height, 5):
+				#var w = min(width, 5)
+				#var row := idata.slice(y * w, y * w + w)
+				#print(Array(row).map(func (i): return "%s%1.2f" % [" " if i >= 0 else "", i]))
 
 			var ddata = rd.buffer_get_data(_sim.buf_debug)
 			var didata = ddata.to_float32_array()
@@ -44,7 +45,7 @@ func on_frame_post_draw():
 			for y in min(height, 5):
 				var w = min(width, 5)
 				var row := didata.slice(y * w, y * w + w)
-				print(Array(row).map(func (i): return "%s%1.4f" % [" " if i >= 0 else "", i]))
+				print(Array(row).map(func (i): return "%s%1.8f" % [" " if i >= 0 else "", i]))
 	_frame += 1
 
 func _init_sim():
@@ -98,7 +99,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_hide_fibers = false
 		
 		if event.pressed:
-			print(event)
+			# print(event)
 			if event.keycode == Key.KEY_LEFT:
 				_click_pos += Vector2i(-1 * _movement_speed, 0)
 			elif event.keycode == Key.KEY_RIGHT:
