@@ -170,7 +170,7 @@ ivec2 shift_by_angle(ivec2 c, float a, float r) {
 }
 
 void splatter(int x, int y, int click_x, int click_y) {
-	const float once_every_n_iterations = 16 * 30;
+	const float once_every_n_iterations = 16 * 40;
 	const float dist_base = 30;
 	const int water_radius = 25;
 	const int pigment_radius = 20;
@@ -178,13 +178,13 @@ void splatter(int x, int y, int click_x, int click_y) {
 	const float pigment_content = 1.0;
 
 	float secs = mod(params.iteration, once_every_n_iterations);
-	//debug.data[x + width * y] = secs;
 
 	float tri;
-	float tr = modf(params.time / 1000000 * 100, tri);
+	float tr = modf((params.time / 100000), tri);
+	debug.data[x + width * y] = tr;
 
-	ivec2 tg = shift_by_angle(ivec2(click_x, click_y), tr, dist_base);
 	if (int(secs) == 0) {
+		ivec2 tg = shift_by_angle(ivec2(click_x, click_y), tr, dist_base);
 		if (in_circle_at(x, y, tg.x, tg.y, water_radius)) {
 			setv(x, y, water_content);
 		}
