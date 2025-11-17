@@ -72,7 +72,7 @@ func _init_sim():
 			%UI.dry_rate,
 			_iteration,
 			_hide_fibers,
-			Time.get_unix_time_from_system(),
+			float(Time.get_ticks_usec()),
 			0.0,
 			0.0,
 			0.0

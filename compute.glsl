@@ -92,19 +92,6 @@ float getf(int x, int y) {
     return fibers.data[width * y + x];
 }
 
-float psrdnoise(vec2 x, vec2 period, float alpha, out vec2 gradient);
-const float breakthrough_threshold = 0.2 * 2.0; // compared with a value in range [0.0, 2.0]
-const float noise_scale = 2.8;
-float rand(int x, int y) {
-	vec2 g; // this is unused, and passed to the last (out) parameter, so the psrdnoise will not calculate it at all
-	float t = noise_scale;
-	float a = mod(params.time * 10000, 64) * (1.0 / 64.0);
-	float noise_v = psrdnoise(vec2(x, y) / t, vec2(0.0, 0.0), a, g);
-	float noise_scaled = (noise_v + 1.0) / 2.0;
-	debug.data[x + width * y] = noise_scaled;
-	return noise_scaled;  // rescale in [0.0, 1.0] range from [-1.0, 1.0] range
-}
-
 exchange _wick(int from_x, int from_y, int to_x, int to_y, float to_fiber) {
 	// prevent anything from happening at margins, where behaviour would be undefined
 	if (from_x < 0 || from_y < 0 || from_x >= width || from_y >= height) {
@@ -119,22 +106,10 @@ exchange _wick(int from_x, int from_y, int to_x, int to_y, float to_fiber) {
 	float from_fiber = getf(from_x, from_y);
 	bool along_fiber = (from_fiber == 1.0 && to_fiber == 1.0);
 
-	// Normally water is blocked when reaching a completely dry cell.
-	// However there is a random chance for it to "break through" the barrier.
-	bool breakthrough = false;
-	if (v != 0 || o != 0) {
-		vec2 g;
-		float noise_v = rand(to_x, to_y);
-		float noise_o = rand(from_x, from_y);
-		float fiber_adjust = float(along_fiber) * 1.0;
-
-		if (noise_o + noise_v + fiber_adjust > breakthrough_threshold) {
-			breakthrough = true;
-		}
-	}
-
-	// Don't diffuse water past dry cells unless breakthrough happened
-	if ((v != 0.0 && o != 0.0) || breakthrough) {
+	// If both cells have dried out, don't diffuse.
+	// Note: if dry rate is 0, diffusion will continue outwards, eventually filling the entire space
+	// The faster the dry rate is, the faster diffusion will hit the dry boundary and stop, generating a patch.
+	if (v != 0.0 || o != 0.0) {
 		float diff = o - v;
 
 		float diffp = 0;
@@ -147,7 +122,7 @@ exchange _wick(int from_x, int from_y, int to_x, int to_y, float to_fiber) {
 
 		return exchange(vec2(diff, diffp), along_fiber);
     }
-	return exchange(vec2(0, 0), false);
+	return exchange(vec2(0, 0), along_fiber);
 }
 
 vec2 _process_cell(int x, int y) {
@@ -182,6 +157,43 @@ bool in_circle(int x, int y, int radius) {
   return (dx * dx + dy * dy <= radius * radius);
 }
 
+bool in_circle_at(int x, int y, int cx, int cy, int radius) {
+  int dx = x - cx;
+  int dy = y - cy;
+  return (dx * dx + dy * dy <= radius * radius);
+}
+
+ivec2 shift_by_angle(ivec2 c, float a, float r) {
+	float angle = a * 6.28318530718; // angle in radians, using 2 * PI
+    vec2 offset = vec2(cos(angle), sin(angle)) * r;
+    return c + ivec2(round(offset)); // round to int
+}
+
+void splatter(int x, int y, int click_x, int click_y) {
+	const float once_every_n_iterations = 16 * 30;
+	const float dist_base = 30;
+	const int water_radius = 25;
+	const int pigment_radius = 20;
+	const float water_content = 0.8;
+	const float pigment_content = 1.0;
+
+	float secs = mod(params.iteration, once_every_n_iterations);
+	//debug.data[x + width * y] = secs;
+
+	float tri;
+	float tr = modf(params.time / 1000000 * 100, tri);
+
+	ivec2 tg = shift_by_angle(ivec2(click_x, click_y), tr, dist_base);
+	if (int(secs) == 0) {
+		if (in_circle_at(x, y, tg.x, tg.y, water_radius)) {
+			setv(x, y, water_content);
+		}
+		if (in_circle_at(x, y, tg.x, tg.y, pigment_radius)) {
+			setp(x, y, tmp_pigment, pigment_content);
+		}
+	}
+}
+
 void main() {
     int x = int(gl_GlobalInvocationID.x);
     int y = int(gl_GlobalInvocationID.y);
@@ -201,6 +213,7 @@ void main() {
 	float cellp = d.y;
 	setp(x, y, tmp_pigment, cellp);
 
+	splatter(x, y, click_x, click_y);
 
 	/* Process input */
 	if (click_x > 0 && click_y > 0) {
@@ -237,52 +250,3 @@ void main() {
     imageStore(out_image, coord, color);
 }
 
-
-// ---------------------------------------------------------------------------
-
-// psrdnoise (c) Stefan Gustavson and Ian McEwan,
-// ver. 2021-12-02, published under the MIT license:
-// https://github.com/stegu/psrdnoise/
-
-float psrdnoise(vec2 x, vec2 period, float alpha, out vec2 gradient)
-{
-  vec2 uv = vec2(x.x+x.y*0.5, x.y);
-  vec2 i0 = floor(uv), f0 = fract(uv);
-  float cmp = step(f0.y, f0.x);
-  vec2 o1 = vec2(cmp, 1.0-cmp);
-  vec2 i1 = i0 + o1, i2 = i0 + 1.0;
-  vec2 v0 = vec2(i0.x - i0.y*0.5, i0.y);
-  vec2 v1 = vec2(v0.x + o1.x - o1.y*0.5, v0.y + o1.y);
-  vec2 v2 = vec2(v0.x + 0.5, v0.y + 1.0);
-  vec2 x0 = x - v0, x1 = x - v1, x2 = x - v2;
-  vec3 iu, iv, xw, yw;
-  if(any(greaterThan(period, vec2(0.0)))) {
-    xw = vec3(v0.x, v1.x, v2.x);
-    yw = vec3(v0.y, v1.y, v2.y);
-    if(period.x > 0.0)
-    xw = mod(vec3(v0.x, v1.x, v2.x), period.x);
-    if(period.y > 0.0)
-      yw = mod(vec3(v0.y, v1.y, v2.y), period.y);
-    iu = floor(xw + 0.5*yw + 0.5); iv = floor(yw + 0.5);
-  } else {
-    iu = vec3(i0.x, i1.x, i2.x); iv = vec3(i0.y, i1.y, i2.y);
-  }
-  vec3 hash = mod(iu, 289.0);
-  hash = mod((hash*51.0 + 2.0)*hash + iv, 289.0);
-  hash = mod((hash*34.0 + 10.0)*hash, 289.0);
-  vec3 psi = hash*0.07482 + alpha;
-  vec3 gx = cos(psi); vec3 gy = sin(psi);
-  vec2 g0 = vec2(gx.x, gy.x);
-  vec2 g1 = vec2(gx.y, gy.y);
-  vec2 g2 = vec2(gx.z, gy.z);
-  vec3 w = 0.8 - vec3(dot(x0, x0), dot(x1, x1), dot(x2, x2));
-  w = max(w, 0.0); vec3 w2 = w*w; vec3 w4 = w2*w2;
-  vec3 gdotx = vec3(dot(g0, x0), dot(g1, x1), dot(g2, x2));
-  float n = dot(w4, gdotx);
-  vec3 w3 = w2*w; vec3 dw = -8.0*w3*gdotx;
-  vec2 dn0 = w4.x*g0 + dw.x*x0;
-  vec2 dn1 = w4.y*g1 + dw.y*x1;
-  vec2 dn2 = w4.z*g2 + dw.z*x2;
-  gradient = 10.9*(dn0 + dn1 + dn2);
-  return 10.9*n;
-}
